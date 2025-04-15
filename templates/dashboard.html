@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">Dashboard</h1>
+    
+    <div class="row">
+        <!-- Account Status Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Account Status</h5>
+                    <button class="btn btn-sm btn-primary" id="refresh-token">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Aveum Email:</strong> <span id="aveum-email">Loading...</span></p>
+                            <p><strong>Login Status:</strong> <span id="login-status" class="badge bg-secondary">Loading...</span></p>
+                            <p><strong>Device ID:</strong> <span id="device-id">Loading...</span></p>
+                            <p><strong>Device Model:</strong> <span id="device-model">Loading...</span></p>
+                            <p><strong>Platform Version:</strong> <span id="platform-version">Loading...</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Mode:</strong> <span id="current-mode" class="badge bg-secondary">Loading...</span></p>
+                            <button class="btn btn-sm btn-secondary" id="switch-mode">
+                                <i class="bi bi-arrow-left-right"></i> Switch Mode
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mining Status Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">Mining Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Current Balance:</strong> <span id="current-balance">Loading...</span></p>
+                            <p><strong>Total Rewards:</strong> <span id="total-rewards">Loading...</span></p>
+                            <p><strong>Mining Sessions:</strong> <span id="mining-sessions">Loading...</span></p>
+                            <p><strong>Mining Errors:</strong> <span id="mining-errors">Loading...</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> <span id="mining-status" class="badge bg-secondary">Loading...</span></p>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-primary" id="start-mining">
+                                    <i class="bi bi-play-fill"></i> Start Mining
+                                </button>
+                                <button class="btn btn-sm btn-danger" id="stop-mining">
+                                    <i class="bi bi-stop-fill"></i> Stop Mining
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auto-Like Status Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Auto-Like Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Total Likes:</strong> <span id="total-likes">Loading...</span></p>
+                            <p><strong>Daily Likes:</strong> <span id="daily-likes">Loading...</span></p>
+                            <p><strong>Like Errors:</strong> <span id="like-errors">Loading...</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> <span id="auto-like-status" class="badge bg-secondary">Loading...</span></p>
+                            <button class="btn btn-sm btn-primary" id="toggle-auto-like">
+                                <i class="bi bi-toggle-on"></i> Toggle Auto-Like
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ban Status Card -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Ban Status</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> <span id="ban-status" class="badge bg-secondary">Loading...</span></p>
+                            <p><strong>Last Check:</strong> <span id="last-ban-check">Loading...</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-sm btn-primary" id="check-ban">
+                                <i class="bi bi-shield-check"></i> Check Ban Status
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log Card -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Activity Log</h5>
+                </div>
+                <div class="card-body">
+                    <div class="activity-log" id="activity-log">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %} 

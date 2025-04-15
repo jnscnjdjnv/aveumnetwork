@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <h1 class="display-4 mb-4">Welcome to Aveum Mining Bot</h1>
+    <p class="lead mb-4">Automate your Aveum mining and auto-like activities with our powerful web interface.</p>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Features</h5>
+                    <ul class="list-unstyled">
+                        <li>✓ Automated Mining</li>
+                        <li>✓ Auto-Like System</li>
+                        <li>✓ Real-time Statistics</li>
+                        <li>✓ Secure Account Management</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg me-3">Login</a>
+        <a href="{{ url_for('register') }}" class="btn btn-outline-primary btn-lg">Register</a>
+    </div>
+</div>
+{% endblock %} 
