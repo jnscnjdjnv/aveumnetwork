@@ -96,9 +96,12 @@ async def login(email, password):
                         'platform_version': payload['platform_version']
                     }
                 else:
+                    error_message = data.get('message', 'Login failed')
+                    if isinstance(error_message, dict):
+                        error_message = error_message.get('error', 'Login failed')
                     return {
                         'success': False,
-                        'error': data.get('message', 'Login failed')
+                        'error': error_message
                     }
     except Exception as error:
         return {

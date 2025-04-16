@@ -152,28 +152,43 @@ def settings():
             password = request.form.get('aveum_password')
             
             if not email or not password:
-                flash('Please provide both email and password')
+                flash('Please provide both email and password', 'warning')
                 return render_template('settings.html')
             
-            # Update user's Aveum credentials
-            current_user.aveum_email = email
-            current_user.aveum_password = password
-            
             # Try to login with new credentials
+            app.logger.info(f"Testing Aveum login for user {current_user.id} with email {email}")
             login_result = asyncio.run(aveum_api.login(email, password))
             
             if login_result['success']:
-                current_user.aveum_token = login_result['token']
-                current_user.device_id = login_result['device_id']
-                current_user.device_model = login_result['device_model']
-                current_user.platform_version = login_result['platform_version']
-                db.session.commit()
-                flash('Aveum credentials updated successfully!')
+                # Only save credentials if login was successful
+                try:
+                    # Save to .env file first
+                    save_env_credentials(email, password)
+                    app.logger.info(f"Saved Aveum credentials to .env for user {current_user.id}")
+                    
+                    # Then update user record
+                    current_user.aveum_email = email
+                    current_user.aveum_password = password
+                    current_user.aveum_token = login_result['token']
+                    current_user.device_id = login_result['device_id']
+                    current_user.device_model = login_result['device_model']
+                    current_user.platform_version = login_result['platform_version']
+                    db.session.commit()
+                    app.logger.info(f"Updated Aveum credentials in database for user {current_user.id}")
+                    
+                    flash('Aveum credentials saved and verified successfully!', 'success')
+                except Exception as save_error:
+                    app.logger.error(f"Failed to save credentials: {str(save_error)}")
+                    db.session.rollback()
+                    flash('Login successful but failed to save credentials. Please try again.', 'danger')
             else:
-                flash(f'Failed to verify credentials: {login_result.get("error", "Unknown error")}')
+                error_msg = login_result.get('error', 'Unknown error')
+                app.logger.error(f"Aveum login failed for user {current_user.id}: {error_msg}")
+                flash(f'Login failed: {error_msg}', 'danger')
         except Exception as e:
             app.logger.error(f"Settings update error: {str(e)}")
-            flash('An error occurred while updating settings. Please try again.')
+            flash('An error occurred while updating settings. Please try again.', 'danger')
+            db.session.rollback()
             
     # Pass placeholder credentials for display
     env_credentials = load_env_credentials(for_display=True)
@@ -190,12 +205,13 @@ def test_credentials():
         return jsonify({'success': False, 'message': 'Email and password are required'})
     
     try:
-        result = aveum_api.login(email, password)
+        result = asyncio.run(aveum_api.login(email, password))
         if result.get('success'):
             return jsonify({'success': True, 'message': 'Credentials are valid'})
         else:
-            return jsonify({'success': False, 'message': result.get('message', 'Invalid credentials')})
+            return jsonify({'success': False, 'message': result.get('error', 'Invalid credentials')})
     except Exception as e:
+        app.logger.error(f"Error testing credentials: {str(e)}")
         return jsonify({'success': False, 'message': f'Error testing credentials: {str(e)}'})
 
 @app.route('/api/start-mining', methods=['POST'])
