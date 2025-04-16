@@ -99,13 +99,22 @@ def register():
 def dashboard():
     return render_template('dashboard.html', user=current_user)
 
-def load_env_credentials():
-    """Load Aveum credentials from .env file"""
+def load_env_credentials(for_display=False):
+    """Load Aveum credentials from .env file or return default placeholders"""
     load_dotenv()
-    return {
-        'email': os.getenv('AVEUM_EMAIL'),
-        'password': os.getenv('AVEUM_PASSWORD')
-    }
+    
+    if for_display:
+        # Return default placeholder values for display
+        return {
+            'email': 'your-email@gmail.com',
+            'password': 'your-password'
+        }
+    else:
+        # Return actual credentials for API calls
+        return {
+            'email': os.getenv('AVEUM_EMAIL'),
+            'password': os.getenv('AVEUM_PASSWORD')
+        }
 
 def save_env_credentials(email, password):
     """Save Aveum credentials to .env file"""
@@ -118,15 +127,20 @@ def save_env_credentials(email, password):
             for line in f:
                 if '=' in line:
                     key, value = line.strip().split('=', 1)
+                    # Remove any existing quotes
+                    value = value.strip('"\'')
                     env_content[key] = value
     
     # Update credentials
     env_content['AVEUM_EMAIL'] = email
     env_content['AVEUM_PASSWORD'] = password
     
-    # Write back to .env file
+    # Write back to .env file with proper quoting
     with open(env_path, 'w') as f:
         for key, value in env_content.items():
+            # Quote the value if it contains spaces or special characters
+            if any(c in value for c in ' \t\n\r\'"'):
+                value = f'"{value}"'
             f.write(f"{key}={value}\n")
 
 @app.route('/settings', methods=['GET', 'POST'])
@@ -161,7 +175,9 @@ def settings():
             app.logger.error(f"Settings update error: {str(e)}")
             flash('An error occurred while updating settings. Please try again.')
             
-    return render_template('settings.html')
+    # Pass placeholder credentials for display
+    env_credentials = load_env_credentials(for_display=True)
+    return render_template('settings.html', env_credentials=env_credentials)
 
 @app.route('/api/test_credentials', methods=['POST'])
 @login_required
@@ -357,33 +373,50 @@ def logout():
 @login_required
 def aveum_credentials():
     if request.method == 'POST':
-        email = request.form.get('aveum_email')
-        password = request.form.get('aveum_password')
-        
-        if email and password:
-            # Save to .env file
-            save_env_credentials(email, password)
+        try:
+            email = request.form.get('aveum_email')
+            password = request.form.get('aveum_password')
             
-            # Try to login with new credentials
+            if not email or not password:
+                flash('Please provide both email and password', 'warning')
+                return render_template('aveum_credentials.html')
+            
+            # Try to login with new credentials first
+            app.logger.info(f"Testing Aveum login for user {current_user.id} with email {email}")
             login_result = asyncio.run(aveum_api.login(email, password))
             
             if login_result['success']:
-                current_user.aveum_email = email
-                current_user.aveum_password = password
-                current_user.aveum_token = login_result['token']
-                current_user.device_id = login_result['device_id']
-                current_user.device_model = login_result['device_model']
-                current_user.platform_version = login_result['platform_version']
-                db.session.commit()
-                flash('Aveum credentials saved and verified successfully!')
+                # Only save credentials if login was successful
+                try:
+                    # Save to .env file first
+                    save_env_credentials(email, password)
+                    app.logger.info(f"Saved Aveum credentials to .env for user {current_user.id}")
+                    
+                    # Then update user record
+                    current_user.aveum_email = email
+                    current_user.aveum_password = password
+                    current_user.aveum_token = login_result['token']
+                    current_user.device_id = login_result['device_id']
+                    current_user.device_model = login_result['device_model']
+                    current_user.platform_version = login_result['platform_version']
+                    db.session.commit()
+                    app.logger.info(f"Updated Aveum credentials in database for user {current_user.id}")
+                    
+                    flash('Aveum credentials saved and verified successfully!', 'success')
+                except Exception as save_error:
+                    app.logger.error(f"Failed to save credentials: {str(save_error)}")
+                    db.session.rollback()
+                    flash('Login successful but failed to save credentials. Please try again.', 'danger')
             else:
-                flash(f'Credentials saved but login failed: {login_result.get("error", "Unknown error")}')
-        else:
-            flash('Please provide both email and password')
+                error_msg = login_result.get('error', 'Unknown error')
+                app.logger.error(f"Aveum login failed for user {current_user.id}: {error_msg}")
+                flash(f'Login failed: {error_msg}', 'danger')
+        except Exception as e:
+            app.logger.error(f"Aveum credentials update error for user {current_user.id}: {str(e)}")
+            flash('An error occurred while updating credentials. Please try again.', 'danger')
+            db.session.rollback()
     
-    # Load current credentials from .env
-    env_credentials = load_env_credentials()
-    return render_template('aveum_credentials.html', env_credentials=env_credentials)
+    return render_template('aveum_credentials.html')
 
 @app.route('/api/mining-status')
 @login_required
