@@ -13,6 +13,7 @@ from models import db, User
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///aveum.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False  # Suppress the deprecation warning
 db.init_app(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -20,6 +21,10 @@ login_manager.login_view = 'login'
 
 # Load environment variables
 load_dotenv()
+
+# Initialize database
+with app.app_context():
+    db.create_all()
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -35,34 +40,58 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        user = User.query.filter_by(email=email).first()
-        
-        if user and user.password == password:  # In production, use proper password hashing
-            login_user(user)
-            user.last_login_time = datetime.now()
-            db.session.commit()
-            return redirect(url_for('dashboard'))
-        flash('Invalid email or password')
+        try:
+            email = request.form.get('email')
+            password = request.form.get('password')
+            
+            if not email or not password:
+                flash('Please provide both email and password')
+                return render_template('login.html')
+                
+            user = User.query.filter_by(email=email).first()
+            
+            if user and user.password == password:  # In production, use proper password hashing
+                login_user(user)
+                user.last_login_time = datetime.now()
+                db.session.commit()
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Invalid email or password')
+        except Exception as e:
+            app.logger.error(f"Login error: {str(e)}")
+            flash('An error occurred during login. Please try again.')
+            
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        
-        if User.query.filter_by(email=email).first():
-            flash('Email already registered')
-            return redirect(url_for('register'))
-        
-        user = User(email=email, password=password)
-        db.session.add(user)
-        db.session.commit()
-        
-        login_user(user)
-        return redirect(url_for('dashboard'))
+        try:
+            email = request.form.get('email')
+            password = request.form.get('password')
+            
+            if not email or not password:
+                flash('Please provide both email and password')
+                return render_template('register.html')
+            
+            # Check if user already exists
+            existing_user = User.query.filter_by(email=email).first()
+            if existing_user:
+                flash('Email already registered')
+                return render_template('register.html')
+            
+            # Create new user
+            new_user = User(email=email, password=password)
+            db.session.add(new_user)
+            db.session.commit()
+            
+            # Log in the new user
+            login_user(new_user)
+            return redirect(url_for('dashboard'))
+        except Exception as e:
+            app.logger.error(f"Registration error: {str(e)}")
+            flash('An error occurred during registration. Please try again.')
+            
     return render_template('register.html')
 
 @app.route('/dashboard')
