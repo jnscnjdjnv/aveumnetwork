@@ -133,12 +133,17 @@ def save_env_credentials(email, password):
 @login_required
 def settings():
     if request.method == 'POST':
-        email = request.form.get('aveum_email')
-        password = request.form.get('aveum_password')
-        
-        if email and password:
-            # Save to .env file
-            save_env_credentials(email, password)
+        try:
+            email = request.form.get('aveum_email')
+            password = request.form.get('aveum_password')
+            
+            if not email or not password:
+                flash('Please provide both email and password')
+                return render_template('settings.html')
+            
+            # Update user's Aveum credentials
+            current_user.aveum_email = email
+            current_user.aveum_password = password
             
             # Try to login with new credentials
             login_result = asyncio.run(aveum_api.login(email, password))
@@ -149,15 +154,14 @@ def settings():
                 current_user.device_model = login_result['device_model']
                 current_user.platform_version = login_result['platform_version']
                 db.session.commit()
-                flash('Credentials saved and verified successfully!')
+                flash('Aveum credentials updated successfully!')
             else:
-                flash(f'Credentials saved but login failed: {login_result.get("error", "Unknown error")}')
-        else:
-            flash('Please provide both email and password')
-    
-    # Load current credentials from .env
-    env_credentials = load_env_credentials()
-    return render_template('settings.html', env_credentials=env_credentials)
+                flash(f'Failed to verify credentials: {login_result.get("error", "Unknown error")}')
+        except Exception as e:
+            app.logger.error(f"Settings update error: {str(e)}")
+            flash('An error occurred while updating settings. Please try again.')
+            
+    return render_template('settings.html')
 
 @app.route('/api/test_credentials', methods=['POST'])
 @login_required
@@ -309,6 +313,7 @@ def get_status():
         if data.get('isHub') and current_user.mining_active:
             if 'currentEarning' in data:
                 current_user.total_rewards = float(data['currentEarning'])
+                current_user.balance = float(data['currentEarning'])  # Update current balance
                 db.session.commit()
         
         return jsonify({

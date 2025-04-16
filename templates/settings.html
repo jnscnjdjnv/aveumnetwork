@@ -26,7 +26,7 @@
                         <div class="mb-3">
                             <label for="aveum_email" class="form-label">Aveum Email</label>
                             <input type="email" class="form-control" id="aveum_email" name="aveum_email" 
-                                   value="{{ env_credentials.email if env_credentials else '' }}" required>
+                                   placeholder="your-email@gmail.com" required>
                             <div class="form-text">Enter your Aveum account email address.</div>
                         </div>
                         
@@ -34,7 +34,7 @@
                             <label for="aveum_password" class="form-label">Aveum Password</label>
                             <div class="input-group">
                                 <input type="password" class="form-control" id="aveum_password" name="aveum_password" 
-                                       value="{{ env_credentials.password if env_credentials else '' }}" required>
+                                       placeholder="your-password" required>
                                 <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                                     <i class="bi bi-eye"></i>
                                 </button>
